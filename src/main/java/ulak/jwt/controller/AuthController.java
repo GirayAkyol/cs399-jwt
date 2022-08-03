@@ -2,14 +2,17 @@ package ulak.jwt.controller;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -19,14 +22,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ulak.jwt.models.CustomUser;
 import ulak.jwt.models.Role;
+import ulak.jwt.repository.PermRepository;
 import ulak.jwt.repository.RoleRepository;
 import ulak.jwt.repository.UserRepository;
 import ulak.jwt.reqres.JwtResponse;
-import ulak.jwt.reqres.SignInRequest;
 import ulak.jwt.reqres.MessageResponse;
+import ulak.jwt.reqres.SignInRequest;
 import ulak.jwt.reqres.SignUpRequest;
 import ulak.jwt.security.jwt.JwtUtility;
 import ulak.jwt.security.service.UserDetailsConc;
+
+
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -40,6 +46,9 @@ public class AuthController {
 
   @Autowired
   RoleRepository roleRepository;
+
+  @Autowired
+  PermRepository permRepository;
 
   @Autowired
   PasswordEncoder encoder;
@@ -59,7 +68,7 @@ public class AuthController {
 
     UserDetailsConc userDetails = (UserDetailsConc) authentication.getPrincipal();
     List<String> roles = userDetails.getAuthorities().stream()
-        .map(item -> item.getAuthority())
+        .map(GrantedAuthority::getAuthority)
         .collect(Collectors.toList());
 
     return ResponseEntity.ok(new JwtResponse(jwt,
@@ -69,6 +78,7 @@ public class AuthController {
   }
 
   @PostMapping("/signup")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequest signUpRequest) {
     if (userRepository.existsByUsername(signUpRequest.getUsername())) {
       return ResponseEntity
@@ -84,32 +94,22 @@ public class AuthController {
     Set<Role> roles = new HashSet<>();
 
     if (strRoles == null) {
+      // Default to user role.
       Role userRole = roleRepository.findByName("ROLE_USER")
           .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
       roles.add(userRole);
     } else {
-      strRoles.forEach(role -> {
-        if (role.equals("admin")){
-          Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-          roles.add(adminRole);
-
-        }else if(role.equals("mod")){
-          Role modRole = roleRepository.findByName("ROLE_MODERATOR")
-              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-          roles.add(modRole);
-        }else if(role.equals("user")) {
-          Role userRole = roleRepository.findByName("ROLE_USER")
-              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-          roles.add(userRole);
-        }
-
+      strRoles.forEach(roleCandidate -> {
+        // Canonicalize role name with fixed locale.
+        Role role = roleRepository.findByName("ROLE_"+roleCandidate.toUpperCase(Locale.ROOT))
+            .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+        roles.add(role);
       });
     }
 
     user.setRoles(roles);
     userRepository.save(user);
 
-    return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    return ResponseEntity.ok(true );
   }
 }

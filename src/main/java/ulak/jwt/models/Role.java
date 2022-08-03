@@ -1,5 +1,7 @@
 package ulak.jwt.models;
 
+import java.util.HashSet;
+import java.util.Set;
 import javax.persistence.*;
 
 @Entity
@@ -10,6 +12,12 @@ public class Role {
   private Integer id;
 
   private String name;
+
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(	name = "role_perms",
+      joinColumns = @JoinColumn(name = "role_id"),
+      inverseJoinColumns = @JoinColumn(name = "perm_id"))
+  private Set<Permission> permissions = new HashSet<>();
 
   public Role() {
 
@@ -33,5 +41,13 @@ public class Role {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public Set<Permission> getPermissions() {
+    return permissions;
+  }
+
+  public void setPermissions(Set<Permission> permissions) {
+    this.permissions = permissions;
   }
 }
