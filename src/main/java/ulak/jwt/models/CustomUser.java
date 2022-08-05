@@ -1,18 +1,24 @@
 package ulak.jwt.models;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
-
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
 
 @Entity
-@Table(schema = "public",	name = "users",
-    uniqueConstraints = {
-        @UniqueConstraint(columnNames = "username"),
-    })
+@Table(schema = "public", name = "cuser", uniqueConstraints = {
+    @UniqueConstraint(columnNames = "username"),})
 public class CustomUser {
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -23,14 +29,10 @@ public class CustomUser {
   @NotBlank
   private String password;
 
-  @ManyToMany(fetch = FetchType.LAZY)
-  @JoinTable(	name = "user_roles",
-      joinColumns = @JoinColumn(name = "user_id"),
-      inverseJoinColumns = @JoinColumn(name = "role_id"))
+  @ManyToMany
+  @JoinTable(name = "users_roles", joinColumns = @JoinColumn(name = "cuser_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"))
   private Set<Role> roles = new HashSet<>();
 
-  public CustomUser() {
-  }
 
   public CustomUser(String username, String password) {
     this.username = username;
@@ -67,5 +69,22 @@ public class CustomUser {
 
   public void setRoles(Set<Role> roles) {
     this.roles = roles;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    CustomUser that = (CustomUser) o;
+    return id.equals(that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 }
