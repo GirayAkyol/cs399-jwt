@@ -66,8 +66,9 @@ public class SecConfiguration extends WebSecurityConfigurerAdapter {
   protected void configure(HttpSecurity http) throws Exception {
     http.cors().and().csrf().disable().sessionManagement()
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().authorizeRequests()
-        .mvcMatchers("/api/auth/**").permitAll().mvcMatchers("/api/rsc/**").permitAll().anyRequest()
-        .authenticated();
+        .anyRequest().permitAll();
+//        .mvcMatchers("/api/auth/**").permitAll().mvcMatchers("/api/rsc/**").permitAll().anyRequest()
+//        .authenticated();
 
     http.addFilterBefore(authenticationJwtTokenFilter(),
         UsernamePasswordAuthenticationFilter.class);

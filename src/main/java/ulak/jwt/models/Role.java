@@ -28,7 +28,7 @@ public class Role {
 
   @ManyToMany
   @JoinTable(name = "roles_roles", joinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "inherits_id", referencedColumnName = "id"))
-  private Set<Role> inherits = new HashSet<>();
+  private final Set<Role> inherits = new HashSet<>();
 
   //  @ManyToMany(mappedBy = "inherits")
 //  private Set<Role> inheritedBy;
@@ -63,9 +63,14 @@ public class Role {
     }
   }
 
+  @Transactional(isolation = Isolation.SERIALIZABLE)
+  public boolean unInheritRole(Role r) {
+    return inherits.remove(r);
+  }
+
 
   /**
-   * Calculates reflexive graph closure of the inherited roles. Planned to be used for cycle
+   * Calculates reflexive transitive closure of the inherited roles. Planned to be used for cycle
    * detection when being inherited by other roles. Infinite recursion on cycles.
    *
    * @return Set of all roles that are directly or indirectly reachable.
@@ -79,6 +84,14 @@ public class Role {
     reachable.addAll(inherits); // probably not required
     reachable.add(this);
     return reachable;
+  }
+
+  public boolean addPermission(Permission permission) {
+    return immediatePermissions.add(permission);
+  }
+
+  public boolean removePermission(Permission permission) {
+    return immediatePermissions.remove(permission);
   }
 
   public Long getId() {

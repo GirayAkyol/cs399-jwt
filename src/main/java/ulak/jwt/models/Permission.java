@@ -74,7 +74,7 @@ public class Permission {
 
   @Override
   public String toString() {
-    String out = resource + ":";
+    String out = resource + "#";
     if (this.action.equals(EnumAction.ACTION_CREATE)) {
       out = out + "CREATE";
     } else if (this.action.equals(EnumAction.ACTION_DELETE)) {
