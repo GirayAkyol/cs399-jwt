@@ -8,8 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import ulak.jwt.models.Role;
 
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Long> {
-  @Transactional(isolation = Isolation.SERIALIZABLE)
+@Transactional(isolation = Isolation.SERIALIZABLE)
 
+public interface RoleRepository extends JpaRepository<Role, Long> {
+
+  @Transactional(isolation = Isolation.SERIALIZABLE)
   Optional<Role> findByName(String name);
 }

@@ -13,10 +13,13 @@ import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Entity
 @Table(schema = "public", name = "cuser", uniqueConstraints = {
     @UniqueConstraint(columnNames = "username"),})
+@Transactional(isolation = Isolation.SERIALIZABLE)
 public class CustomUser {
 
   @Id
@@ -37,6 +40,12 @@ public class CustomUser {
   public CustomUser(String username, String password) {
     this.username = username;
     this.password = password;
+  }
+
+  public CustomUser() {
+    super();
+    this.username = "";
+    this.password = "";
   }
 
   public Long getId() {

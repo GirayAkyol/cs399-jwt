@@ -11,24 +11,26 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import ulak.jwt.security.service.UserDetailsConc;
 
 @Component
 public class JwtUtility {
-  @Value("${ulak.jwt.Secret}")
-  private String jwtSecret;
 
   //@Value("${ulak.jwt.ExpirationMiliSec}")
   private final long jwtExpirationMs = ChronoUnit.DAYS.getDuration().toMillis();
+  @Value("${ulak.jwt.Secret}")
+  private String jwtSecret;
+
   public String generateJwtToken(Authentication authentication) {
 
-    UserDetailsConc userPrincipal = (UserDetailsConc) authentication.getPrincipal();
+    UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
 
     return Jwts.builder().setSubject((userPrincipal.getUsername())).
-        setIssuedAt( new Date() )
-        .setExpiration(new Date((new Date()).getTime() + ChronoUnit.DAYS.getDuration().toMillis())).signWith(
+        setIssuedAt(new Date())
+        .setExpiration(new Date((new Date()).getTime() + ChronoUnit.DAYS.getDuration().toMillis()))
+        .signWith(
             SignatureAlgorithm.HS512, jwtSecret)
         .compact();
   }
@@ -38,15 +40,15 @@ public class JwtUtility {
   }
 
   public boolean validateJwtToken(String authToken) {
-    if (StringUtils.hasText(authToken)){
-    try {
-      Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(authToken);
-      return true;
-    } catch (SignatureException | MalformedJwtException | ExpiredJwtException |
-             UnsupportedJwtException | IllegalArgumentException e) {
-      System.out.println("Invalid JWT signature: " + e.getMessage());
-}
-}
+    if (StringUtils.hasText(authToken)) {
+      try {
+        Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(authToken);
+        return true;
+      } catch (SignatureException | MalformedJwtException | ExpiredJwtException |
+               UnsupportedJwtException | IllegalArgumentException e) {
+        System.out.println("Invalid JWT signature: " + e.getMessage());
+      }
+    }
     return false;
   }
 }

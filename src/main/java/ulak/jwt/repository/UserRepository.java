@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ulak.jwt.models.CustomUser;
 
 @Repository
+@Transactional(isolation = Isolation.SERIALIZABLE)
 public interface UserRepository extends JpaRepository<CustomUser, Long> {
 
   @Transactional(isolation = Isolation.SERIALIZABLE)

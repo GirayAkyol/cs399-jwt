@@ -10,9 +10,12 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Entity
 @Table(name = "cperm")
+@Transactional(isolation = Isolation.SERIALIZABLE)
 public class Permission {
 
   @Id
@@ -67,5 +70,20 @@ public class Permission {
   @Override
   public int hashCode() {
     return Objects.hash(id);
+  }
+
+  @Override
+  public String toString() {
+    String out = resource + ":";
+    if (this.action.equals(EnumAction.ACTION_CREATE)) {
+      out = out + "CREATE";
+    } else if (this.action.equals(EnumAction.ACTION_DELETE)) {
+      out = out + "DELETE";
+    } else if (this.action.equals(EnumAction.ACTION_READ)) {
+      out = out + "READ";
+    } else if (this.action.equals(EnumAction.ACTION_WRITE)) {
+      out = out + "WRITE";
+    }
+    return out;
   }
 }

@@ -1,6 +1,5 @@
 package ulak.jwt.models;
 
-import io.vavr.control.Either;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -13,10 +12,12 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
-import org.springframework.security.access.hierarchicalroles.CycleInRoleHierarchyException;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Entity
 @Table(name = "crole")
+@Transactional(isolation = Isolation.SERIALIZABLE)
 public class Role {
 
   @Id
@@ -46,17 +47,19 @@ public class Role {
     this.name = name;
   }
 
+  @Transactional(isolation = Isolation.SERIALIZABLE)
   public boolean canInheritRole(Role toBeInherited) {
     Set<Role> roles = toBeInherited.getDirectlyOrIndirectlyInheritedRoles();
     return !roles.contains(this);
 
   }
 
-  public Either<Boolean, CycleInRoleHierarchyException> inheritRole(Role r) {
+  @Transactional(isolation = Isolation.SERIALIZABLE)
+  public boolean inheritRole(Role r) {
     if (canInheritRole(r)) {
-      return Either.left(this.inherits.add(r));
+      return inherits.add(r);
     } else {
-      return Either.right(new CycleInRoleHierarchyException());
+      return false;
     }
   }
 
@@ -67,6 +70,7 @@ public class Role {
    *
    * @return Set of all roles that are directly or indirectly reachable.
    */
+  @Transactional(isolation = Isolation.SERIALIZABLE)
   public Set<Role> getDirectlyOrIndirectlyInheritedRoles() {
     Set<Role> reachable = new HashSet<>(Collections.emptySet());
     for (Role r : inherits) {

@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import ulak.jwt.models.CustomUser;
 
 public class UserDetailsConc implements UserDetails {
+
   private static final long serialVersionUID = 1L;
 
 
@@ -24,24 +25,21 @@ public class UserDetailsConc implements UserDetails {
 
   private Collection<? extends GrantedAuthority> authorities;
 
-  public UserDetailsConc(Long id, String username,  String password,
+  public UserDetailsConc(Long id, String username, String password,
       Collection<? extends GrantedAuthority> authorities) {
     this.id = id;
     this.username = username;
     this.password = password;
     this.authorities = authorities;
   }
+
   public static UserDetailsConc build(CustomUser user) {
     List<GrantedAuthority> authorities = user.getRoles().stream()
-        .map(role -> new SimpleGrantedAuthority(role.getName()))
-        .collect(Collectors.toList());
+        .map(role -> new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
 
-    return new UserDetailsConc(
-        user.getId(),
-        user.getUsername(),
-        user.getPassword(),
-        authorities);
+    return new UserDetailsConc(user.getId(), user.getUsername(), user.getPassword(), authorities);
   }
+
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
     return authorities;
@@ -83,10 +81,12 @@ public class UserDetailsConc implements UserDetails {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     UserDetailsConc user = (UserDetailsConc) o;
     return Objects.equals(id, user.id);
   }

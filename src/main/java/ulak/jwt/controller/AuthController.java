@@ -14,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,14 +31,13 @@ import ulak.jwt.reqres.MessageResponse;
 import ulak.jwt.reqres.SignInRequest;
 import ulak.jwt.reqres.SignUpRequest;
 import ulak.jwt.security.jwt.JwtUtility;
-import ulak.jwt.security.service.UserDetailsConc;
-
 
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
   @Autowired
   AuthenticationManager authenticationManager;
 
@@ -61,31 +61,26 @@ public class AuthController {
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody SignInRequest signInRequest) {
 
     Authentication authentication = authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(signInRequest.getUsername(), signInRequest.getPassword()));
+        new UsernamePasswordAuthenticationToken(signInRequest.getUsername(),
+            signInRequest.getPassword()));
 
     SecurityContextHolder.getContext().setAuthentication(authentication);
     String jwt = jwtUtils.generateJwtToken(authentication);
 
-    UserDetailsConc userDetails = (UserDetailsConc) authentication.getPrincipal();
-    List<String> roles = userDetails.getAuthorities().stream()
-        .map(GrantedAuthority::getAuthority)
+    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+    List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority)
         .collect(Collectors.toList());
 
-    return ResponseEntity.ok(new JwtResponse(jwt,
-        userDetails.getId(),
-        userDetails.getUsername(),
-        roles));
+    return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getUsername(), roles));
   }
 
   @PostMapping("/signup")
-  @PreAuthorize("hasRole('ADMIN')")
+//  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequest signUpRequest) {
     if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-      return ResponseEntity
-          .badRequest()
+      return ResponseEntity.badRequest()
           .body(new MessageResponse("Error: Username is already taken!"));
     }
-
 
     CustomUser user = new CustomUser(signUpRequest.getUsername(),
         encoder.encode(signUpRequest.getPassword()));
@@ -101,7 +96,7 @@ public class AuthController {
     } else {
       strRoles.forEach(roleCandidate -> {
         // Canonicalize role name with fixed locale.
-        Role role = roleRepository.findByName("ROLE_"+roleCandidate.toUpperCase(Locale.ROOT))
+        Role role = roleRepository.findByName("ROLE_" + roleCandidate.toUpperCase(Locale.ROOT))
             .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
         roles.add(role);
       });
@@ -110,6 +105,6 @@ public class AuthController {
     user.setRoles(roles);
     userRepository.save(user);
 
-    return ResponseEntity.ok(true );
+    return ResponseEntity.ok(true);
   }
 }

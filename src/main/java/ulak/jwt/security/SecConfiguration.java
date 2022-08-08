@@ -3,6 +3,7 @@ package ulak.jwt.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -12,14 +13,17 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ulak.jwt.security.jwt.AuthTokenFilter;
+import ulak.jwt.security.service.RoleHierarchyConc;
 import ulak.jwt.security.service.UserDetailsServiceConc;
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(    prePostEnabled = true)
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecConfiguration extends WebSecurityConfigurerAdapter {
+
   @Autowired
   UserDetailsServiceConc userDetailsService;
 
@@ -29,8 +33,10 @@ public class SecConfiguration extends WebSecurityConfigurerAdapter {
   }
 
   @Override
-  public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
-    authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+  public void configure(AuthenticationManagerBuilder authenticationManagerBuilder)
+      throws Exception {
+    authenticationManagerBuilder.userDetailsService(userDetailsService)
+        .passwordEncoder(passwordEncoder());
   }
 
   @Bean
@@ -38,19 +44,32 @@ public class SecConfiguration extends WebSecurityConfigurerAdapter {
   public AuthenticationManager authenticationManagerBean() throws Exception {
     return super.authenticationManagerBean();
   }
+
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 
+  @Bean
+  public RoleHierarchy roleHierarchy() {
+    return new RoleHierarchyConc();
+  }
+
+  @Bean
+  public DefaultWebSecurityExpressionHandler CustomWebSecurityExpressionHandler() {
+    DefaultWebSecurityExpressionHandler expressionHandler = new DefaultWebSecurityExpressionHandler();
+    expressionHandler.setRoleHierarchy(roleHierarchy());
+    return expressionHandler;
+  }
+
   @Override
   protected void configure(HttpSecurity http) throws Exception {
-    http.cors().and().csrf().disable()
-        .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-        .authorizeRequests().mvcMatchers("/api/auth/**").permitAll()
-        .mvcMatchers("/api/rsc/**").permitAll()
-        .anyRequest().authenticated();
+    http.cors().and().csrf().disable().sessionManagement()
+        .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().authorizeRequests()
+        .mvcMatchers("/api/auth/**").permitAll().mvcMatchers("/api/rsc/**").permitAll().anyRequest()
+        .authenticated();
 
-    http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+    http.addFilterBefore(authenticationJwtTokenFilter(),
+        UsernamePasswordAuthenticationFilter.class);
   }
 }
