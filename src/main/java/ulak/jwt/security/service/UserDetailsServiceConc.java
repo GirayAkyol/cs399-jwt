@@ -3,6 +3,7 @@ package ulak.jwt.security.service;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -36,7 +37,16 @@ public class UserDetailsServiceConc implements UserDetailsService {
         () -> new UsernameNotFoundException("User Not Found with username: " + username));
 
     return User.builder().username(user.getUsername()).password(user.getPassword())
-        .authorities(getGrantedAuthorities(getPrivileges(user.getRoles()))).build();
+        .authorities(getGrantedAuthorities(getPrivileges(user.getRoles())))
+        .credentialsExpired(false).accountExpired(false).build();
+  }
+
+  private String[] getIndirectRoles(Set<Role> roles) {
+    Set<String> all = new HashSet<>();
+    for (Role r : roles) {
+      all.addAll(r.getDirectlyOrIndirectlyInheritedRoles().stream().map(Role::getName).toList());
+    }
+    return all.stream().toList().toArray(new String[0]);
   }
 
   private Set<String> getPrivileges(Collection<Role> roles) {
@@ -44,7 +54,8 @@ public class UserDetailsServiceConc implements UserDetailsService {
     Set<String> privileges = new HashSet<>();
     Set<Permission> collection = new HashSet<>();
     for (Role role : roles) {
-      privileges.add(role.getName());
+      privileges.addAll(role.getDirectlyOrIndirectlyInheritedRoles().stream().map(Role::getName)
+          .collect(Collectors.toSet()));
       collection.addAll(role.getImmediatePermissions());
     }
     for (Permission item : collection) {

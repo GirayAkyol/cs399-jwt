@@ -32,18 +32,19 @@ public class AclController {
 
   @PostMapping("/add/role")
   public ResponseEntity<?> addRole(@Valid @RequestBody AddRoleRequest addRoleRequest) {
-    if (roleRepository.existsByName("ROLE_" + addRoleRequest.getName())) {
+    if (roleRepository.existsByName("ROLE_" + addRoleRequest.getName().toUpperCase(Locale.ROOT))) {
       return ResponseEntity.badRequest()
           .body(new MessageResponse("Error: Role name is already taken!"));
     }
-    Role newRole = new Role("ROLE_" + addRoleRequest.getName());
+    Role newRole = new Role("ROLE_" + addRoleRequest.getName().toUpperCase(Locale.ROOT));
 
     {
       Set<String> strRoles = addRoleRequest.getInheriting();
       if (strRoles != null) {
         strRoles.forEach(roleCandidate -> {
           // Canonicalize role name with fixed locale.
-          Role role = roleRepository.findByName("ROLE_" + roleCandidate.toUpperCase(Locale.ROOT))
+          roleCandidate = "ROLE_" + roleCandidate.toUpperCase(Locale.ROOT);
+          Role role = roleRepository.findByName(roleCandidate)
               .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
           newRole.inheritRole(role);
         });
