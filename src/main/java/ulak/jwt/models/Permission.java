@@ -23,6 +23,15 @@ public class Permission {
   private Long id;
 
   private String resource;
+
+  public EnumAction getAction() {
+    return action;
+  }
+
+  public void setAction(EnumAction action) {
+    this.action = action;
+  }
+
   @Enumerated(EnumType.STRING)
   private EnumAction action;
 
