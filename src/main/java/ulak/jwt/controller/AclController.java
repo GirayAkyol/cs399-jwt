@@ -5,6 +5,7 @@ import java.util.Set;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +17,7 @@ import ulak.jwt.models.Role;
 import ulak.jwt.repository.PermRepository;
 import ulak.jwt.repository.RoleRepository;
 import ulak.jwt.reqres.AddRoleRequest;
+import ulak.jwt.reqres.ExtendRoleRequest;
 import ulak.jwt.reqres.MessageResponse;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -31,6 +33,7 @@ public class AclController {
 
 
   @PostMapping("/add/role")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<?> addRole(@Valid @RequestBody AddRoleRequest addRoleRequest) {
     if (roleRepository.existsByName("ROLE_" + addRoleRequest.getName().toUpperCase(Locale.ROOT))) {
       return ResponseEntity.badRequest()
@@ -64,8 +67,39 @@ public class AclController {
       });
     }
 
+    permRepository.saveAll(newRole.getImmediatePermissions());
     roleRepository.save(newRole);
 
     return ResponseEntity.ok(true);
+  }
+
+
+  @PostMapping("/extend/role")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<?> extendRole(@Valid @RequestBody ExtendRoleRequest extendRoleRequest) {
+
+    Role newRole = roleRepository.findByName(
+            "ROLE_" + extendRoleRequest.getName().toUpperCase(Locale.ROOT))
+        .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+
+    {
+      Set<String> strRoles = extendRoleRequest.getInheriting();
+      if (strRoles != null) {
+        strRoles.forEach(roleCandidate -> {
+          // Canonicalize role name with fixed locale.
+          roleCandidate = "ROLE_" + roleCandidate.toUpperCase(Locale.ROOT);
+          Role role = roleRepository.findByName(roleCandidate)
+              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+          boolean added = newRole.inheritRole(role);
+          if (!added) {
+            throw new RuntimeException("Error: Role is not inheritable.");
+          }
+        });
+      }
+
+      roleRepository.save(newRole);
+
+      return ResponseEntity.ok(true);
+    }
   }
 }
